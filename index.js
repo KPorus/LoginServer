@@ -46,22 +46,6 @@ async function run() {
 
     app.post(
       "/login",
-      body("email").isEmail().withMessage("Please provide corrrect mail"),
-      check("password")
-        .isLength({ min: 5 })
-        .withMessage("Password must be at least 5")
-        .matches(/[\!\@\#\$\%\^\&\*]{1,}/)
-        .withMessage("must contain a unique number")
-        .matches(/[A-Z]{1,}/)
-        .withMessage("must contain a capital word"),
-      (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-          let errorsList = errors.array().map((error) => error.msg);
-          return res.status(422).json(errorsList);
-        }
-        next();
-      },
       async (req, res) => {
         const user = req.body;
           const find = await userCollection.findOne({
@@ -70,12 +54,12 @@ async function run() {
           });
           if (find) {
             console.log(true);
-             req.session.user= user
+             req.session.user= find
              req.session.save();
-              return res.send(find);
+              return res.status(200).send("User Login Successfull");
             
           } else {
-            res.send("User not found");
+            res.status(400).send("User not found. Please check if everything is ok!!");
           }
       }
     );
@@ -103,11 +87,15 @@ async function run() {
         .withMessage("Please provide corrrect mail"),
       body("name").trim().notEmpty().withMessage("Name is missing"),
       // password must be at least 5 chars long
-      check("password").isLength({min:5}).withMessage("Password must be at least 5")
+      check("password")
+        .isLength({ min: 5 })
+        .withMessage("Password must be at least 5")
         .matches(/[\!\@\#\$\%\^\&\*]{1,}/)
         .withMessage("must contain a unique number")
         .matches(/[A-Z]{1,}/)
-        .withMessage("must contain a capital word"),
+        .withMessage("must contain a capital word")
+        .matches(/\d/)
+        .withMessage("must contain a number"),
       (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -118,13 +106,13 @@ async function run() {
       },
       async (req, res) => {
         const user = req.body;
-          const find = await userCollection.findOne({ email: user.email });
-          if (!find) {
-            const result = await userCollection.insertOne(user);
-            res.status(200).json("register success");
-          } else {
-            res.send("User already register");
-          }
+        const find = await userCollection.findOne({ email: user.email });
+        if (!find) {
+          const result = await userCollection.insertOne(user);
+          res.status(200).json("register success");
+        } else {
+          res.send("User already register");
+        }
       }
     );
   } finally {
