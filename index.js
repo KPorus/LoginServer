@@ -45,7 +45,9 @@ async function run() {
     const userCollection = client.db("Users").collection("user");
 
     // user login
-
+    app.get("/", (req, res) => {
+      res.send("I am watching you.");
+    });
     app.post("/login", async (req, res) => {
       const user = req.body;
       const find = await userCollection.findOne({
