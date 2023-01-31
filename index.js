@@ -127,6 +127,7 @@ async function run() {
       return res.send("User found for forget pass");
     });
 
+    // reset password
     app.patch(
       "/resetPass/:id",
       check("password")
