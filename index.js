@@ -55,14 +55,6 @@ async function run() {
       },
       async (req, res) => {
         const user = req.body;
-        const { email, password } = user;
-        if ( !email || !password) {
-          const errors = validationResult(req);
-          if (!errors.isEmpty()) {
-            let errorsList = errors.array().map((error) => error.msg);
-            return res.status(422).json(errorsList);
-          }
-        } else {
           const find = await userCollection.findOne({
             email: user.email,
             password: user.password,
@@ -73,7 +65,6 @@ async function run() {
           } else {
             res.send("User not found");
           }
-        }
       }
     );
 
@@ -102,15 +93,6 @@ async function run() {
       },
       async (req, res) => {
         const user = req.body;
-        const { name, email, password } = user;
-
-        if (!name || !email || !password) {
-          const errors = validationResult(req);
-          if (!errors.isEmpty()) {
-            let errorsList = errors.array().map((error) => error.msg);
-            return res.status(422).json(errorsList);
-          }
-        } else {
           const find = await userCollection.findOne({ email: user.email });
           if (!find) {
             const result = await userCollection.insertOne(user);
@@ -118,7 +100,6 @@ async function run() {
           } else {
             res.send("User already register");
           }
-        }
       }
     );
   } finally {
