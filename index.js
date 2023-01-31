@@ -1,19 +1,22 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const { body, validationResult, check } = require("express-validator");
 const app = express();
+const nodemailer = require("nodemailer");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const port = process.env.PORT || 5000;
 
 app.use(cookieParser());
-app.use(session({ secret: "fardin125168456", saveUninitialized: true, resave: true }));
+app.use(
+  session({ secret: "fardin125168456", saveUninitialized: true, resave: true })
+);
 
 const user = {
   email: "",
-  password:""
+  password: "",
 };
 // fun part
 app.use((req, res, next) => {
@@ -44,25 +47,23 @@ async function run() {
 
     // user login
 
-    app.post(
-      "/login",
-      async (req, res) => {
-        const user = req.body;
-          const find = await userCollection.findOne({
-            email: user.email,
-            password: user.password,
-          });
-          if (find) {
-            console.log(true);
-             req.session.user= find
-             req.session.save();
-              return res.status(200).send("User Login Successfull");
-            
-          } else {
-            res.status(400).send("User not found. Please check if everything is ok!!");
-          }
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      const find = await userCollection.findOne({
+        email: user.email,
+        password: user.password,
+      });
+      if (find) {
+        console.log(true);
+        req.session.user = find;
+        req.session.save();
+        return res.status(200).send("User Login Successfull");
+      } else {
+        res
+          .status(400)
+          .send("User not found. Please check if everything is ok!!");
       }
-    );
+    });
 
     // user check
     app.get("/user", (req, res) => {
@@ -113,6 +114,51 @@ async function run() {
         } else {
           res.send("User already register");
         }
+      }
+    );
+
+    const forgetPass = {};
+    app.post("/forgot-password", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const oldUser = await userCollection.findOne(query);
+      if (!oldUser) {
+        return res.json({ status: "User Not Exists!!" });
+      }
+      return res.send("User found for forget pass");
+    });
+
+    app.patch(
+      "/resetPass/:id",
+      check("password")
+        .isLength({ min: 5 })
+        .withMessage("Password must be at least 5")
+        .matches(/[\!\@\#\$\%\^\&\*]{1,}/)
+        .withMessage("must contain a unique number")
+        .matches(/[A-Z]{1,}/)
+        .withMessage("must contain a capital word")
+        .matches(/\d/)
+        .withMessage("must contain a number"),
+      (req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          let errorsList = errors.array().map((error) => error.msg);
+          return res.status(422).json(errorsList);
+        }
+        next();
+      },
+      async (req, res) => {
+        const id = req.params.id;
+        const user = req.body;
+        console.log(user);
+        const query = { _id: ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            password: user.password,
+          },
+        };
+        const result = await userCollection.updateOne(query, updatedDoc);
+        res.send({ state: "password reset", result });
       }
     );
   } finally {
