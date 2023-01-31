@@ -4,8 +4,17 @@ const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const { body, validationResult, check } = require("express-validator");
 const app = express();
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
 const port = process.env.PORT || 5000;
 
+app.use(cookieParser());
+app.use(session({ secret: "fardin125168456", saveUninitialized: true, resave: true }));
+
+const user = {
+  email: "",
+  password:""
+};
 // fun part
 app.use((req, res, next) => {
   console.log(req.path, "I am watching you.");
@@ -33,7 +42,7 @@ async function run() {
   try {
     const userCollection = client.db("Users").collection("user");
 
-    // user profile
+    // user login
 
     app.post(
       "/login",
@@ -61,13 +70,29 @@ async function run() {
           });
           if (find) {
             console.log(true);
-            res.send(find);
+             req.session.user= user
+             req.session.save();
+              return res.send(find);
+            
           } else {
             res.send("User not found");
           }
       }
     );
 
+    // user check
+    app.get("/user", (req, res) => {
+      const sessionUser = req.session.user;
+      return res.send(sessionUser);
+    });
+
+    // logout
+    app.get("/logout", (req, res) => {
+      req.session.destroy();
+      return res.send("User logged out!");
+    });
+
+    // user register
     app.post(
       "/register",
 
@@ -96,7 +121,7 @@ async function run() {
           const find = await userCollection.findOne({ email: user.email });
           if (!find) {
             const result = await userCollection.insertOne(user);
-            res.send("register success");
+            res.status(200).json("register success");
           } else {
             res.send("User already register");
           }
