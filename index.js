@@ -4,7 +4,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const { body, validationResult, check } = require("express-validator");
 const app = express();
-const nodemailer = require("nodemailer");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const port = process.env.PORT || 5000;
