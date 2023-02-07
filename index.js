@@ -169,13 +169,10 @@ async function run() {
     app.post("/addpost/:email", async (req, res) => {
       const post = req.body;
       const Useremail = req.params.email;
-      const Posts = { ...post,likes:{userId:""},Useremail };
+      const Posts = { ...post, likes: { userId: "" }, Useremail };
       const UserPosts = await postCollection.insertOne(Posts);
-      return res
-        .status(200)
-        .send(UserPosts);;
+      return res.status(200).send(UserPosts);
     });
-
 
     //all post ============
     app.get("/allpost", async (req, res) => {
@@ -193,15 +190,33 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const findPost = await postCollection.find(filter);
       if (findPost) {
-        const result = await postCollection.deleteOne(query)
+        const result = await postCollection.deleteOne(query);
         res.send(result);
-      }
-      else
-      {
-        res.status(400).send("There is no post of this user.")
+      } else {
+        res.status(400).send("There is no post of this user.");
       }
     });
 
+    //update post ============
+    app.patch("/updatePost/:email/:id", async (req, res) => {
+      const id = req.params.id;
+      const post = req.body.post;
+      const img = req.body.img;
+      console.log(post)
+      const user = req.params.email;
+     
+        const query = { _id: ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            post:{
+              test:post,
+              img:img
+            }
+          },
+        }
+        const result = await postCollection.updateOne(query, updatedDoc);
+        res.status(200).send(result);
+    });
   } finally {
   }
 }
