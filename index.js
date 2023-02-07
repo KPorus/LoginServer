@@ -202,20 +202,18 @@ async function run() {
       const id = req.params.id;
       const post = req.body.post;
       const img = req.body.img;
-      console.log(post)
-      const user = req.params.email;
-     
-        const query = { _id: ObjectId(id) };
-        const updatedDoc = {
-          $set: {
-            post:{
-              test:post,
-              img:img
-            }
+      console.log(post);
+      const query = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          post: {
+            test: post,
+            img: img,
           },
-        }
-        const result = await postCollection.updateOne(query, updatedDoc);
-        res.status(200).send(result);
+        },
+      };
+      const result = await postCollection.updateOne(query, updatedDoc);
+      res.status(200).send(result);
     });
   } finally {
   }
