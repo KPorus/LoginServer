@@ -216,7 +216,22 @@ async function run() {
       res.status(200).send(result);
     });
 
-    //like a post ===========
+    //post comment ============
+    app.patch("/comment/:postId", async (req, res) => {
+      const id = req.params.postId;
+      const comment = req.body.comment;
+      console.log(comment);
+      const query = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+            comment:comment
+        },
+      };
+      const result = await postCollection.updateOne(query, updatedDoc);
+      res.status(200).send(result);
+    });
+
+    //like & disliked a post ===========
 
     app.put("/like/:userId/:id", async (req, res) => {
       const id = req.params.id;
