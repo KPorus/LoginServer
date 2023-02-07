@@ -43,6 +43,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const userCollection = client.db("Users").collection("user");
+    const postCollection = client.db("Users").collection("post");
 
     // user login
     app.get("/", (req, res) => {
@@ -163,6 +164,44 @@ async function run() {
         res.send({ state: "password reset", result });
       }
     );
+
+    //user post ================
+    app.post("/addpost/:email", async (req, res) => {
+      const post = req.body;
+      const Useremail = req.params.email;
+      const Posts = { ...post,likes:{userId:""},Useremail };
+      const UserPosts = await postCollection.insertOne(Posts);
+      return res
+        .status(200)
+        .send(UserPosts);;
+    });
+
+
+    //all post ============
+    app.get("/allpost", async (req, res) => {
+      const query = {};
+      const cursor = postCollection.find(query);
+      const posts = await cursor.toArray();
+      res.send(posts);
+    });
+
+    //Delete post ============
+    app.delete("/deletePost/:email/:id", async (req, res) => {
+      const user = req.params.email;
+      const filter = { Useremail: user };
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const findPost = await postCollection.find(filter);
+      if (findPost) {
+        const result = await postCollection.deleteOne(query)
+        res.send(result);
+      }
+      else
+      {
+        res.status(400).send("There is no post of this user.")
+      }
+    });
+
   } finally {
   }
 }
