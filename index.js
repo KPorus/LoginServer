@@ -169,7 +169,7 @@ async function run() {
     app.post("/addpost/:email", async (req, res) => {
       const post = req.body;
       const Useremail = req.params.email;
-      const Posts = { ...post, likes: { userId: "" }, Useremail };
+      const Posts = { ...post, likes: [], Useremail };
       const UserPosts = await postCollection.insertOne(Posts);
       return res.status(200).send(UserPosts);
     });
@@ -215,6 +215,59 @@ async function run() {
       const result = await postCollection.updateOne(query, updatedDoc);
       res.status(200).send(result);
     });
+
+    //like a post ===========
+
+    app.put("/like/:userId/:id", async (req, res) => {
+      const id = req.params.id;
+      const userId = req.params.userId;
+      const query = { _id: ObjectId(id) };
+      const likeQuery = { likes: [userId ] };
+      const findPost = await postCollection.find({query,likeQuery}).toArray();
+      const likeCount = await postCollection.count(likeQuery);
+      if (findPost==false && likeCount == 0) {
+        const updatedDoc = {
+          $push: {
+            likes: [
+              userId
+          ],
+          },
+        };
+        const result = await postCollection.updateOne(query, updatedDoc);
+        res.status(200).json("The post has been liked");
+       }
+       else{
+         const updatedDoc = {
+           $pull: {
+             likes: [userId],
+           },
+         };
+         const result = await postCollection.updateOne(query, updatedDoc);
+         res.status(200).json("The post has been disliked");
+       }
+    });
+
+    // // disliked a post =============
+    // app.put("/dislike/:userId/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const userId = req.params.userId;
+    //   const query = { _id: ObjectId(id) };
+    //   const likeQuery = { likes: [userId] };
+    //   const findPost = await postCollection
+    //     .find({ query, likeQuery })
+    //     .toArray();
+
+    //   console.log(findPost);
+    //   if (findPost) {
+    //      const updatedDoc = {
+    //        $pull: {
+    //          likes: [userId],
+    //        },
+    //      };
+    //      const result = await postCollection.updateOne(query, updatedDoc);
+    //      res.status(200).json("The post has been disliked");
+    //   } 
+    // });
   } finally {
   }
 }
