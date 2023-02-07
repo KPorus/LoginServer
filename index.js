@@ -169,7 +169,7 @@ async function run() {
     app.post("/addpost/:email", async (req, res) => {
       const post = req.body;
       const Useremail = req.params.email;
-      const Posts = { ...post, likes: [], Useremail };
+      const Posts = { ...post, likes: [], Useremail,comment:[] };
       const UserPosts = await postCollection.insertOne(Posts);
       return res.status(200).send(UserPosts);
     });
@@ -223,7 +223,7 @@ async function run() {
       console.log(comment);
       const query = { _id: ObjectId(id) };
       const updatedDoc = {
-        $set: {
+        $push: {
             comment:comment
         },
       };
