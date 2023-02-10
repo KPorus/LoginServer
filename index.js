@@ -66,16 +66,6 @@ async function run() {
     const userCollection = client.db("Users").collection("user");
     const postCollection = client.db("Users").collection("post");
 
-    // jwt
-    app.post("/jwt", (req, res) => {
-      const user = req.body;
-      console.log(user);
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "14d",
-      });
-      res.send({ token });
-    });
-
     app.get("/", (req, res) => {
       res.send("I am watching you.");
     });
