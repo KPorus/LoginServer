@@ -1,11 +1,15 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const { body, validationResult, check } = require("express-validator");
 const app = express();
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
+const Cryptr = require('cryptr');
+const cryptr = new Cryptr(process.env.ACCESS_TOKEN_SECRET);
+
 const port = process.env.PORT || 5000;
 
 app.use(cookieParser());
@@ -30,6 +34,23 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 
+async function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, user) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.user = user;
+    next();
+  });
+}
+
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -45,10 +66,21 @@ async function run() {
     const userCollection = client.db("Users").collection("user");
     const postCollection = client.db("Users").collection("post");
 
-    // user login
+    // jwt
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "14d",
+      });
+      res.send({ token });
+    });
+
     app.get("/", (req, res) => {
       res.send("I am watching you.");
     });
+
+    // user login
     app.post("/login", async (req, res) => {
       const user = req.body;
       const find = await userCollection.findOne({
@@ -59,7 +91,10 @@ async function run() {
         console.log(true);
         req.session.user = find;
         req.session.save();
-        return res.status(200).send("User Login Successfull");
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+          expiresIn: "14d",
+        });
+        return res.status(200).send({ token:token });
       } else {
         res
           .status(400)
@@ -166,16 +201,16 @@ async function run() {
     );
 
     //user post ================
-    app.post("/addpost/:email", async (req, res) => {
+    app.post("/addpost/:email", verifyJWT, async (req, res) => {
       const post = req.body;
       const Useremail = req.params.email;
-      const Posts = { ...post, likes: [], Useremail,comment:[] };
+      const Posts = { ...post, likes: [], Useremail, comment: [] };
       const UserPosts = await postCollection.insertOne(Posts);
       return res.status(200).send(UserPosts);
     });
 
     //all post ============
-    app.get("/allpost", async (req, res) => {
+    app.get("/allpost",  verifyJWT, async (req, res) => {
       const query = {};
       const cursor = postCollection.find(query);
       const posts = await cursor.toArray();
@@ -183,7 +218,7 @@ async function run() {
     });
 
     //Delete post ============
-    app.delete("/deletePost/:email/:id", async (req, res) => {
+    app.delete("/deletePost/:email/:id", verifyJWT, async (req, res) => {
       const user = req.params.email;
       const filter = { Useremail: user };
       const id = req.params.id;
@@ -198,7 +233,7 @@ async function run() {
     });
 
     //update post ============
-    app.patch("/updatePost/:email/:id", async (req, res) => {
+    app.patch("/updatePost/:email/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const post = req.body.post;
       const img = req.body.img;
@@ -217,14 +252,14 @@ async function run() {
     });
 
     //post comment ============
-    app.patch("/comment/:postId", async (req, res) => {
+    app.patch("/comment/:postId",verifyJWT, async (req, res) => {
       const id = req.params.postId;
       const comment = req.body.comment;
       console.log(comment);
       const query = { _id: ObjectId(id) };
       const updatedDoc = {
         $push: {
-            comment:comment
+          comment: comment,
         },
       };
       const result = await postCollection.updateOne(query, updatedDoc);
@@ -237,29 +272,28 @@ async function run() {
       const id = req.params.id;
       const userId = req.params.userId;
       const query = { _id: ObjectId(id) };
-      const likeQuery = { likes: [userId ] };
-      const findPost = await postCollection.find({query,likeQuery}).toArray();
+      const likeQuery = { likes: [userId] };
+      const findPost = await postCollection
+        .find({ query, likeQuery })
+        .toArray();
       const likeCount = await postCollection.count(likeQuery);
-      if (findPost==false && likeCount == 0) {
+      if (findPost == false && likeCount == 0) {
         const updatedDoc = {
           $push: {
-            likes: [
-              userId
-          ],
+            likes: [userId],
           },
         };
         const result = await postCollection.updateOne(query, updatedDoc);
         res.status(200).json("The post has been liked");
-       }
-       else{
-         const updatedDoc = {
-           $pull: {
-             likes: [userId],
-           },
-         };
-         const result = await postCollection.updateOne(query, updatedDoc);
-         res.status(200).json("The post has been disliked");
-       }
+      } else {
+        const updatedDoc = {
+          $pull: {
+            likes: [userId],
+          },
+        };
+        const result = await postCollection.updateOne(query, updatedDoc);
+        res.status(200).json("The post has been disliked");
+      }
     });
 
     // // disliked a post =============
@@ -281,7 +315,7 @@ async function run() {
     //      };
     //      const result = await postCollection.updateOne(query, updatedDoc);
     //      res.status(200).json("The post has been disliked");
-    //   } 
+    //   }
     // });
   } finally {
   }
